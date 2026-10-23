@@ -1,0 +1,543 @@
+Merkle Object Layer Research Specification v0.1
+
+Project: Project #5 — Sovereign Gateway Fabric
+Deliverable ID: P5-RES-MOL-001
+Version: 0.1
+Status: DRAFT — RESEARCH SPECIFICATION
+Classification: Technical research and prototype design
+Authority: Proposed; not an approved protocol or production specification
+
+---
+
+1. Abstract
+
+This document defines a research specification for a Merkle Object Layer (MOL) intended to investigate verifiable objects, stable object references, structured object relationships, and integrity-preserving exchange across a distributed system.
+
+The research examines how objects can be represented independently of their physical storage location or transport path, how their contents and relationships can be verified, and how these properties may support the Project #5 architecture.
+
+The central research proposition is:
+
+An object should be independently identifiable and verifiable from its canonical representation, while transport, storage, authorization, and application behavior remain separate concerns.
+
+A Merkle Object Layer may provide a foundation for:
+
+- Content-addressed object references.
+- Integrity verification of retrieved objects.
+- Verifiable relationships between objects.
+- Incremental retrieval and replication.
+- Evidence and provenance references for agent investigations.
+- Separation between object identity and physical location.
+- Future integration with transport, capability, authorization, and quorum mechanisms.
+
+This document specifies research objectives, candidate data structures, invariants, threat considerations, prototype boundaries, and acceptance tests. It does not establish that these mechanisms have already been adopted by Project #5.
+
+2. Scope and architectural placement
+
+2.1 Proposed layering
+
+The research proposes the following conceptual arrangement:
+
+Application / Administered Directory
+                 |
+          Agent Architecture
+                 |
+       Authorization Boundary
+                 |
+        Merkle Object Layer
+                 |
+       Object Retrieval Interface
+                 |
+       Transport / MTU Boundary
+                 |
+          Network Fabric
+
+This is a research decomposition, not a claim that the final Project #5 stack must use exactly these layers or interfaces.
+
+The intended separation is:
+
+- Application and administered directory: define the meaning and operational use of objects.
+- Agent architecture: organizes investigation, evidence, hypotheses, tests, decisions, and proposed actions.
+- Authorization boundary: determines whether an operation is permitted under an authoritative policy.
+- Merkle Object Layer: identifies and verifies canonical object representations and their declared relationships.
+- Retrieval interface: locates or obtains object data without changing the object's content identity.
+- Transport boundary: carries bytes subject to applicable packet and payload limits.
+- Network fabric: provides the underlying communication environment.
+
+2.2 Included
+
+This research covers:
+
+1. Object representation and canonical encoding.
+2. Content-derived identifiers.
+3. Merkle relationships and integrity verification.
+4. Object references and retrieval semantics.
+5. Transport-independent identity.
+6. Object versioning and immutable revisions.
+7. Integrity failures and malformed objects.
+8. Regression testing and adversarial test cases.
+9. Possible use as a substrate for investigation evidence and directory records.
+
+2.3 Excluded from v0.1
+
+The following are explicitly outside the prototype's authority and implementation scope:
+
+- A finalized Project #5 wire protocol.
+- A finalized MTU, packet format, or fragmentation protocol.
+- Sovereign identity cryptographic design.
+- Capability issuance or authorization enforcement.
+- Quorum formation or consensus.
+- Economic mechanisms, bonds, fees, rewards, or reputation rules.
+- A production directory service.
+- Autonomous administrative remediation.
+- Claims of legal evidentiary admissibility.
+
+These subjects may depend on the object layer but must not be inferred from it.
+
+3. Terminology
+
+Term| Research definition
+Object| A discrete data unit represented by a defined canonical encoding.
+Object ID| An identifier derived from the canonical object representation or its defined digest.
+Content addressing| Referencing an object by an identifier derived from its content.
+Merkle relationship| A cryptographically verifiable relationship between a parent representation and referenced child data or digests.
+Root digest| A digest representing a defined object or collection of object relationships.
+Canonical encoding| A unique byte representation for semantically equivalent values under a specified encoding profile.
+Object reference| A typed reference to an object, optionally including its expected digest and version.
+Retrieval| Obtaining an object representation from a storage or transport provider.
+Verification| Checking that received bytes satisfy the specified encoding and digest rules.
+Provenance| Information describing an object's source, time, scope, and relationship to other records.
+Authorized state| State accepted under the applicable authority and governance rules; not established by a Merkle digest alone.
+
+These are research definitions for this document. Project #5's authoritative master specification must determine final terminology where it differs.
+
+4. Research objectives
+
+R1 — Content identity
+
+Determine whether content-derived identifiers provide stable object references across different storage locations and transport paths.
+
+R2 — Integrity
+
+Determine whether a receiver can detect altered, truncated, malformed, or incorrectly referenced object data.
+
+R3 — Relationship verification
+
+Determine whether parent objects can reference child objects in a manner that allows independent verification of the declared relationship.
+
+R4 — Transport independence
+
+Determine whether the same valid object can be transferred using different transport implementations without changing its content identity.
+
+R5 — Incremental retrieval
+
+Determine whether large object collections can be retrieved and verified in bounded units without requiring the entire collection to be transmitted as a single transport payload.
+
+R6 — Investigation traceability
+
+Determine whether stable object references can support evidence records while preserving distinctions between supplied evidence, hypotheses, observed results, findings, decisions, and authorization.
+
+R7 — Isolation of authority
+
+Determine whether object integrity can remain independent of authorization decisions, without allowing possession of an object or knowledge of its identifier to imply permission to use or modify it.
+
+5. Candidate object model
+
+5.1 Logical structure
+
+A candidate logical object contains:
+
+- A schema or object-type identifier.
+- A format version.
+- Canonically encoded object content.
+- Zero or more typed references to other objects, where applicable.
+- Optional application metadata governed by the selected object profile.
+
+This logical structure is a proposal. The exact field layout and canonical serialization remain open decisions.
+
+5.2 Candidate identifier construction
+
+For research purposes, define the identifier of an object as:
+
+[
+\operatorname{OID}(O) =
+\text{algorithm-id} \parallel
+H(\text{domain-tag} \parallel C(O))
+]
+
+Where:
+
+- (O) is the logical object.
+- (C(O)) is its canonical byte representation.
+- (H) is the selected cryptographic hash function.
+- "domain-tag" separates this identifier domain from other uses of the hash function.
+- "algorithm-id" identifies the digest algorithm and identifier profile.
+
+This is a candidate construction, not a finalized Project #5 identifier format. The exact domain-tag encoding, algorithm identifier, digest length, and canonicalization rules must be fixed before interoperable implementations are possible.
+
+A verifier must not accept an identifier merely because its textual format appears valid. It must recompute the digest from the bytes interpreted under the specified profile and compare the result.
+
+5.3 Canonicalization requirements
+
+The research implementation must investigate:
+
+- Deterministic field ordering.
+- Unambiguous integer and length encoding.
+- Explicit handling of optional and missing fields.
+- String encoding and normalization rules.
+- Representation of binary data.
+- Rejection of duplicate or conflicting fields where prohibited.
+- Explicit version and algorithm identification.
+- Treatment of unknown fields.
+
+Semantically equivalent objects must produce the same identifier only when the applicable canonicalization profile explicitly defines them as equivalent.
+
+The implementation must not silently normalize data in ways that change its meaning.
+
+6. Merkle relationships
+
+6.1 Candidate object graph
+
+The layer may represent relationships as a directed graph:
+
+[
+G = (V,E)
+]
+
+Where:
+
+- (V) is the set of objects.
+- (E) is the set of declared object references.
+
+A parent object may include the identifiers of its children. Its own identifier then commits to the canonical representation containing those identifiers.
+
+For an acyclic object graph, this enables recursive verification from a selected root through the referenced objects.
+
+6.2 Integrity invariant
+
+MOL-I1 — Identifier consistency
+
+For every object accepted under a defined identifier profile:
+
+[
+\operatorname{VerifyOID}(O,\operatorname{OID}(O)) = \text{true}
+]
+
+If the object's canonical bytes change, its identifier must change except in the event of a cryptographic collision or a violation of the identifier profile.
+
+6.3 Reference invariant
+
+MOL-I2 — Reference integrity
+
+A reference that claims a child object has identifier (x) must not be considered verified until the received child representation has been checked against (x).
+
+A missing child is an unavailable dependency, not a verified object.
+
+6.4 Root integrity
+
+MOL-I3 — Root commitment
+
+A verified root commits to the specific canonical representation and child references defined by its profile.
+
+A root digest alone does not prove:
+
+- Who created the object.
+- Whether its contents are truthful.
+- Whether its creator was authorized.
+- Whether the object is current.
+- Whether a referenced object is available.
+- Whether the object represents authorized state.
+
+These claims require additional evidence or mechanisms.
+
+6.5 Cycles and shared children
+
+The initial prototype should use acyclic object graphs. Shared child objects may be referenced by multiple parents.
+
+Cyclic references, recursive schemas, and graph canonicalization require separate analysis because they can complicate construction, verification, and deterministic identity.
+
+The prototype must reject cycles if its chosen graph profile forbids them; it must not silently break or rewrite them.
+
+7. Object retrieval and transport boundary
+
+7.1 Retrieval interface
+
+The research layer should expose a minimal conceptual interface:
+
+trait ObjectStore {
+    type Error;
+
+    fn get(
+        &self,
+        object_id: &ObjectId,
+    ) -> Result<Option<Vec<u8>>, Self::Error>;
+
+    fn put(
+        &mut self,
+        object_id: &ObjectId,
+        canonical_bytes: &[u8],
+    ) -> Result<(), Self::Error>;
+}
+
+This Rust interface is illustrative. It is not a final API, and a production interface would need to specify ownership, resource limits, error semantics, concurrency, and storage guarantees.
+
+"put" must verify that the supplied bytes correspond to the claimed object identifier before accepting them as a verified object. The interface must not imply that storage acceptance establishes authorization or trust.
+
+7.2 Transport independence
+
+MOL-I4 — Transport independence
+
+For identical canonical bytes under the same identifier profile, transport selection must not change the object identifier.
+
+The object layer must distinguish:
+
+- Logical object size.
+- Encoded object size.
+- Transport payload size.
+- Network packet size.
+- Any framing or metadata overhead.
+
+These quantities are not interchangeable.
+
+7.3 MTU-related research
+
+The layer must not assume that an entire object fits in one network packet.
+
+The initial research should investigate bounded retrieval units, chunk manifests, and verified incremental reconstruction as possible approaches.
+
+If chunking is introduced, the specification must define whether the root commits to the whole object, the chunk sequence, the chunk boundaries, or a manifest describing them.
+
+An individual chunk's integrity does not prove that the complete object has been reconstructed correctly. Reconstruction must also verify ordering, completeness, declared lengths, and the final object identity.
+
+Fragmentation, retransmission, transport reliability, and packet-level behavior remain responsibilities of their explicitly selected layers unless a later specification assigns them otherwise.
+
+8. Versioning and immutability
+
+8.1 Immutable object identity
+
+Under this research model, changing canonical object content creates a different object identifier.
+
+A new revision should therefore be represented by a new object rather than silently overwriting the meaning of an existing identifier.
+
+8.2 Revision relationships
+
+Applications may introduce explicit relationships such as:
+
+- "PREVIOUS_VERSION"
+- "SUPERSEDES"
+- "DERIVED_FROM"
+- "REFERENCES"
+
+These are proposed relationship labels, not approved Project #5 protocol vocabulary.
+
+The object layer must not infer that a newer timestamp, larger sequence number, or newer revision is automatically authorized or authoritative.
+
+8.3 Mutable names
+
+Human-readable names and mutable aliases may resolve to object identifiers, but they must remain distinct from immutable content identity.
+
+The rules for updating, authenticating, and resolving such names are outside the core integrity mechanism and require separate specification.
+
+9. Security and trust boundaries
+
+9.1 Threat model
+
+The research prototype should consider:
+
+1. Content tampering: bytes change after an identifier is computed.
+2. Incorrect references: a parent points to an object that does not match the declared identifier.
+3. Truncation: an incomplete object is presented as complete.
+4. Malformed encoding: ambiguous or invalid representations produce inconsistent identities.
+5. Resource exhaustion: large lengths, deep graphs, repeated references, or oversized objects consume excessive resources.
+6. Unavailable dependencies: valid references point to objects that cannot currently be retrieved.
+7. Stale references: an object is valid but no longer the application's selected revision.
+8. Malicious object content: a correctly hashed object contains deceptive instructions or false claims.
+9. Authorization confusion: a valid object identifier is incorrectly treated as proof of permission.
+10. Algorithm confusion: identifiers are interpreted under an unintended digest or serialization profile.
+
+9.2 Required controls
+
+The research design should enforce:
+
+- Strict size and depth limits.
+- Explicit algorithm and format profiles.
+- Deterministic encoding rules.
+- Verification before acceptance.
+- Fail-closed behavior for invalid digests.
+- Explicit errors for missing or unavailable objects.
+- Separation of content verification from identity authentication.
+- Separation of identity authentication from authorization.
+- Safe handling of object contents as data rather than executable instructions.
+- No silent conversion of incomplete evidence into a positive finding.
+
+9.3 Agent integration
+
+The Project Manager v0.3.1 specification defines the investigation chain:
+
+Observation → Evidence → Hypothesis → Test → Result → Finding → Decision → Authorized Action → Verification → Updated State.
+
+The Merkle Object Layer may provide integrity-checked references for evidence, test records, and other investigation artifacts.
+
+It must not collapse the chain. A digest establishes a relationship to specific bytes under a defined profile; it does not establish that an observation is accurate, a hypothesis is supported, or an action is authorized.
+
+The operational modification boundary remains:
+
+READ → ANALYZE → PROPOSE → AUTHORIZE → MODIFY → VERIFY.
+
+The object layer must not bypass this boundary.
+
+10. Prototype architecture
+
+The isolated research prototype should initially contain the following modules:
+
+Module| Responsibility
+"canonical"| Deterministic object encoding and strict parsing.
+"hashing"| Identifier generation and verification under one explicitly selected test profile.
+"object"| Typed object representation and validation.
+"references"| Child-reference parsing and verification.
+"graph"| Bounded traversal and cycle detection.
+"store"| Local in-memory or test-only object storage.
+"retrieval"| Bounded object retrieval and missing-object handling.
+"transport_adapter"| Experimental boundary between object bytes and bounded transport units.
+"tests"| Unit, regression, malformed-input, and graph-integrity tests.
+
+The initial implementation should use deterministic local fixtures and avoid external network access.
+
+No production identity, capability, directory, quorum, or authorization service should be integrated until its interface and authority model have been independently specified.
+
+11. Regression and acceptance criteria
+
+ID| Test| Acceptance condition
+MOL-T01| Deterministic identity| Identical canonical bytes and profile produce identical identifiers.
+MOL-T02| Content alteration| Altered content fails verification against the original identifier.
+MOL-T03| Encoding ambiguity| Invalid or ambiguous encodings are rejected.
+MOL-T04| Algorithm profile| Unsupported or mismatched identifier profiles are rejected explicitly.
+MOL-T05| Child verification| A child whose bytes do not match its referenced identifier is rejected.
+MOL-T06| Missing dependency| An unavailable child is reported as missing, not verified.
+MOL-T07| Root commitment| Changing a committed child reference changes the parent's identifier.
+MOL-T08| Cycle handling| Cycles are rejected under the initial acyclic graph profile.
+MOL-T09| Resource limits| Oversized objects and excessive graph depth are rejected within configured limits.
+MOL-T10| Transport independence| Equivalent canonical bytes retain the same object identifier across transport fixtures.
+MOL-T11| Chunk reconstruction| Missing, reordered, or altered chunks prevent successful reconstruction.
+MOL-T12| Revision semantics| Changed content receives a new identifier; an old identifier is not silently reassigned.
+MOL-T13| Authorization separation| Object verification alone never satisfies an authorization check.
+MOL-T14| Investigation provenance| Evidence references retain their source metadata and do not invent missing results.
+
+Acceptance requires recorded test results, not merely a list of test cases. Failed, inconclusive, and unexecuted tests must remain distinguishable.
+
+12. Research methodology
+
+The research should proceed in four stages.
+
+Stage A — Definition
+
+- Select a candidate canonical encoding.
+- Define an identifier profile.
+- Define the object and reference schemas.
+- Specify the initial acyclic graph rules.
+- Establish resource limits.
+
+Stage B — Isolated implementation
+
+- Implement canonicalization and identifier verification.
+- Implement object and child-reference validation.
+- Build an in-memory object store.
+- Add deterministic fixtures and negative tests.
+
+Stage C — Boundary evaluation
+
+- Test transport-size limits independently of object identity.
+- Evaluate bounded retrieval and chunk reconstruction.
+- Test malformed input, missing dependencies, and resource exhaustion.
+- Confirm that verification and authorization remain separate.
+
+Stage D — Review
+
+- Compare the prototype against the authoritative Project #5 specification.
+- Record interoperability gaps.
+- Review unresolved security assumptions.
+- Submit proposed protocol decisions for explicit approval.
+
+No stage should be marked complete without its stated acceptance evidence.
+
+13. Open decisions
+
+The following decisions remain unresolved and must not be silently inferred:
+
+1. Which Project #5 specification revision is authoritative for this work?
+2. Which cryptographic hash algorithm and identifier profile should be used?
+3. Which canonical encoding should define object identity?
+4. Are object identifiers binary, textual, or available in both forms?
+5. Which object types and schema-versioning rules are required?
+6. Are object relationships restricted to directed acyclic graphs?
+7. Is chunking part of the object layer, a separate storage layer, or a transport concern?
+8. What maximum object size, graph depth, and resource limits apply?
+9. How should mutable names resolve to immutable object identifiers?
+10. Which mechanisms establish authorship, trust, freshness, and authorization?
+11. How do the object layer and transport boundary interact with the eventual Project #5 wire format?
+12. Which interoperability, fuzzing, performance, and security targets are required before implementation approval?
+
+Each answer should be recorded as a decision with provenance, rationale, consequences, and a condition for reconsideration.
+
+14. Risks
+
+R1 — Specification drift. A prototype may accidentally become the de facto protocol before review.
+
+Mitigation: label implementation choices experimental and require explicit approval before promoting them to normative requirements.
+
+R2 — Hash identity mistaken for trust. Consumers may treat content integrity as proof of authorship or authorization.
+
+Mitigation: preserve distinct verification, authentication, and authorization interfaces.
+
+R3 — Canonicalization disagreement. Implementations may derive different identifiers for equivalent logical objects.
+
+Mitigation: publish canonical byte-level test vectors and reject undefined encoding cases.
+
+R4 — Unbounded graph traversal. Malicious references may exhaust resources or cause pathological retrieval behavior.
+
+Mitigation: impose depth, size, and work limits and test adversarial graph structures.
+
+R5 — Incomplete transport integration. A valid object may be truncated or incorrectly reconstructed across bounded payloads.
+
+Mitigation: verify reconstruction independently against the expected object identifier.
+
+R6 — Historical terminology treated as current architecture. Older project notes may describe mechanisms that are no longer authoritative.
+
+Mitigation: resolve terminology against the current master specification and preserve historical changes as historical records.
+
+15. Deliverables
+
+The research work is expected to produce:
+
+1. This research specification, version 0.1.
+2. A canonical encoding and identifier-profile proposal.
+3. A small isolated Rust implementation.
+4. A deterministic test-vector collection.
+5. A regression harness covering the acceptance criteria.
+6. A threat and failure analysis.
+7. An interoperability report.
+8. A decision record identifying which proposed mechanisms, if any, are approved for subsequent Project #5 implementation.
+
+16. Definition of success
+
+The research succeeds when an independent reviewer can:
+
+- Reconstruct the specified object identifier from canonical bytes.
+- Verify object and child-reference integrity.
+- Detect invalid, missing, altered, and incomplete data.
+- Understand the limits of a root digest.
+- Distinguish object identity from object location, authorship, trust, freshness, and authorization.
+- Confirm that object identity is independent of transport choice.
+- Reproduce the regression results.
+- Identify every unresolved protocol decision without relying on unstated assumptions.
+
+17. Status and approval boundary
+
+Current status: DRAFT — RESEARCH SPECIFICATION v0.1.
+
+This document proposes a research direction and a testable architecture. It does not establish that the Merkle Object Layer is an approved Project #5 subsystem, that any particular hash or encoding has been selected, or that the proposed interfaces are normative.
+
+Promotion to an implementation specification requires review against the authoritative Project #5 master specification, resolution of the relevant open decisions, and explicit project-owner approval.
+
+---
+
+End of specification.
